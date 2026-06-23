@@ -1,0 +1,77 @@
+/**
+ * GlamTrack - Complete Predefined Master Data Schema Repository Constants
+ */
+export const SAMPLE_CATEGORIES = [
+  { catCode: "01", catName: "Hair Services", catDescription: "Haircuts, coloring, spa, styling, permanents, and relaxers" },
+  { catCode: "02", catName: "Skin & Beauty Services", catDescription: "Facials, waxing, and specialized body treatments" },
+  { catCode: "03", catName: "Makeup & Bridal Services", catDescription: "Bridal packages, event makeup, and runway secret styles" },
+  { catCode: "04", catName: "Hands & Feet Services", catDescription: "Manicures, pedicures, creative nail art, and nail extensions" },
+  { catCode: "05", catName: "Eyelash and Eyebrow Treatments Services", catDescription: "Eyebrow shaping, threading, waxing, and lash care" },
+  { catCode: "06", catName: "Groom Makeup for the Modern Man Services", catDescription: "Natural groom makeup profiles, styling, and beard designs" },
+  { catCode: "07", catName: "Wellness Add‑Ons", catDescription: "Massage therapies, specialized aromatherapy, and stress relief" }
+];
+
+export const SAMPLE_SERVICES = [
+  { serviceCode: "01", catCode: "01", serviceName: "Haircuts", serviceDescription: "Professional trims and style cuts" },
+  { serviceCode: "02", catCode: "01", serviceName: "Hair Coloring", serviceDescription: "Global color, highlights, and touch-ups" },
+  { serviceCode: "03", catCode: "01", serviceName: "Hair Spa", serviceDescription: "Nourishing and restorative hair treatments" },
+  { serviceCode: "04", catCode: "01", serviceName: "Blowouts & Styling", serviceDescription: "Blow dry, straightening, and event styling" },
+  { serviceCode: "06", catCode: "01", serviceName: "Other Hair Services", serviceDescription: "Braiding and specialty buns" },
+  { serviceCode: "07", catCode: "02", serviceName: "Facials", serviceDescription: "Advanced skin care and facial treatments" },
+  { serviceCode: "08", catCode: "02", serviceName: "Waxing", serviceDescription: "Full body and targeted area hair removal" },
+  { serviceCode: "10", catCode: "03", serviceName: "Bridal Makeup", serviceDescription: "Premium HD and Airbrush bridal packages" },
+  { serviceCode: "11", catCode: "03", serviceName: "Event Makeup", serviceDescription: "Basic, engagement, and advanced makeup settings" },
+  { serviceCode: "13", catCode: "04", serviceName: "Manicure", serviceDescription: "Classic and premium care for hands" },
+  { serviceCode: "14", catCode: "04", serviceName: "Pedicure", serviceDescription: "Classic and premium care for feet" },
+  { serviceCode: "15", catCode: "04", serviceName: "Nail Art", serviceDescription: "Creative accents, glitter, and ombre styling" },
+  { serviceCode: "16", catCode: "04", serviceName: "Nail Extensions", serviceDescription: "Acrylic and gel structural extensions" },
+  { serviceCode: "17", catCode: "05", serviceName: "Eyebrow Shaping", serviceDescription: "Precision eyebrow line detailing" },
+  { serviceCode: "18", catCode: "06", serviceName: "Natural Groom Makeup", serviceDescription: "Subtle mapping and basic styling for men" },
+  { serviceCode: "19", catCode: "07", serviceName: "Massage Therapy", serviceDescription: "Targeted and full body structural bodywork" },
+  { serviceCode: "21", catCode: "07", serviceName: "Hair Spa (Add-on)", serviceDescription: "Express menu treatments" },
+  { serviceCode: "22", catCode: "07", serviceName: "Hair Cut (Add-on)", serviceDescription: "Quick cuts and styling variations" },
+  { serviceCode: "23", catCode: "07", serviceName: "Beard & Mustache Styling", serviceDescription: "Shaping, grooming, and classic trimming" },
+  { serviceCode: "24", catCode: "02", serviceName: "Face Care (Non-Facial)", serviceDescription: "Threading, Face Bleach,  Face De-Tan Pack, Face Clean-Up, Tinting, Eyelash Extensions, Lip Scrub & Mask" }
+];
+
+export const SAMPLE_SUB_SERVICES = [
+  { subServiceCode: "001", serviceCode: "01", subServiceName: "Basic trims", rate: 350, durationMinutes: 20 },
+  { subServiceCode: "002", serviceCode: "01", subServiceName: "Layered cuts", rate: 750, durationMinutes: 45 },
+  { subServiceCode: "003", serviceCode: "01", subServiceName: "Medium Cut", rate: 600, durationMinutes: 35 },
+  { subServiceCode: "004", serviceCode: "01", subServiceName: "Long Cut", rate: 900, durationMinutes: 50 },
+  { subServiceCode: "005", serviceCode: "02", subServiceName: "Global color", rate: 3200, durationMinutes: 120 },
+  { subServiceCode: "006", serviceCode: "02", subServiceName: "Highlights", rate: 4500, durationMinutes: 150 },
+  { subServiceCode: "008", serviceCode: "02", subServiceName: "Root touch‑ups", rate: 1200, durationMinutes: 45 },
+  { subServiceCode: "010", serviceCode: "03", subServiceName: "Matrix Hair Spa", rate: 1500, durationMinutes: 60 },
+  { subServiceCode: "011", serviceCode: "03", subServiceName: "Loreal Hair Spa", rate: 2200, durationMinutes: 75 },
+  { subServiceCode: "013", serviceCode: "04", subServiceName: "Blow Dry ", rate: 450, durationMinutes: 25 },
+  { subServiceCode: "014", serviceCode: "04", subServiceName: "Hair Straightening (Blowouts & Styling)", rate: 1000, durationMinutes: 40 },
+  { subServiceCode: "015", serviceCode: "04", subServiceName: "Curling (Blowouts & Styling)", rate: 1200, durationMinutes: 45 },
+  { subServiceCode: "016", serviceCode: "04", subServiceName: "Basic Styling (Blowouts & Styling)", rate: 800, durationMinutes: 30 },
+  { subServiceCode: "023", serviceCode: "06", subServiceName: "Braiding", rate: 500, durationMinutes: 30 },
+  { subServiceCode: "024", serviceCode: "06", subServiceName: "Buns", rate: 1200, durationMinutes: 40 },
+  { subServiceCode: "027", serviceCode: "07", subServiceName: "Fruit Facial", rate: 1500, durationMinutes: 45 },
+  { subServiceCode: "028", serviceCode: "07", subServiceName: "Anti Tan Facial", rate: 1800, durationMinutes: 50 },
+  { subServiceCode: "030", serviceCode: "08", subServiceName: "Full body Waxing", rate: 3800, durationMinutes: 90 },
+  { subServiceCode: "031", serviceCode: "08", subServiceName: "Arms & Underarms Waxing", rate: 600, durationMinutes: 20 },
+  { subServiceCode: "032", serviceCode: "08", subServiceName: "Half Legs Waxing", rate: 500, durationMinutes: 20 },
+  { subServiceCode: "033", serviceCode: "08", subServiceName: "Full Legs Waxing", rate: 900, durationMinutes: 35 },
+  { subServiceCode: "035", serviceCode: "08", subServiceName: "Stomach & Back Waxing", rate: 1100, durationMinutes: 30 },
+  { subServiceCode: "039", serviceCode: "10", subServiceName: "HD Bridal Makeup", rate: 15000, durationMinutes: 180 },
+  { subServiceCode: "042", serviceCode: "11", subServiceName: "Basic Makeup", rate: 3000, durationMinutes: 45 },
+  { subServiceCode: "043", serviceCode: "11", subServiceName: "Engagement Makeup", rate: 8000, durationMinutes: 90 },
+  { subServiceCode: "047", serviceCode: "13", subServiceName: "Classic Manicure", rate: 600, durationMinutes: 30 },
+  { subServiceCode: "049", serviceCode: "14", subServiceName: "Classic Pedicure", rate: 800, durationMinutes: 40 },
+  { subServiceCode: "050", serviceCode: "14", subServiceName: "Premium Pedicure", rate: 1400, durationMinutes: 55 },
+  { subServiceCode: "051", serviceCode: "15", subServiceName: "Creative designs Nail Art", rate: 150, durationMinutes: 15 },
+  { subServiceCode: "052", serviceCode: "15", subServiceName: "Glitter Nail Art", rate: 500, durationMinutes: 20 },
+  { subServiceCode: "056", serviceCode: "17", subServiceName: "Threading Eyebrow Shaping", rate: 100, durationMinutes: 10 },
+  { subServiceCode: "057", serviceCode: "17", subServiceName: "Waxing Eyebrow Shaping", rate: 250, durationMinutes: 15 },
+  { subServiceCode: "058", serviceCode: "18", subServiceName: "Subtle & Basic Natural Groom Makeup", rate: 2500, durationMinutes: 45 },
+  { subServiceCode: "060", serviceCode: "19", subServiceName: "Head Massage", rate: 400, durationMinutes: 20 },
+  { subServiceCode: "061", serviceCode: "19", subServiceName: "Neck Massage", rate: 300, durationMinutes: 15 },
+  { subServiceCode: "062", serviceCode: "19", subServiceName: "Shoulders Massage", rate: 400, durationMinutes: 15 },
+  { subServiceCode: "063", serviceCode: "19", subServiceName: "Full body Massage", rate: 2800, durationMinutes: 60 },
+  { subServiceCode: "070", serviceCode: "23", subServiceName: "Shaping & trimming (Beard & Mustache Styling)", rate: 250, durationMinutes: 20 },
+  { subServiceCode: "071", serviceCode: "24", subServiceName: "Face, Neck and Back Bleach", rate: 300, durationMinutes: 25 }
+];

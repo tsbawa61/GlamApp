@@ -101,7 +101,37 @@
             }
             .col-md-6, .col-md-4, .col-md-3 { width: 100%; }
         }
-        /* Hide spinners for allot price fields */
+        /* Offline banner */
+        #offline-banner {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 9999;
+            background: #dc3545;
+            color: #fff;
+            text-align: center;
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+        }
+        /* Fluid font scaling for large system fonts */
+        html { font-size: clamp(13px, 2vw, 16px); }
+        /* Keyboard padding on mobile so submit buttons stay visible */
+        @media (max-width: 768px) {
+            .view-section.active { padding-bottom: 80px !important; }
+        }
+        /* Privacy policy footer */
+        #privacy-footer {
+            text-align: center;
+            padding: 0.5rem;
+            font-size: 0.78rem;
+            color: #6c757d;
+            border-top: 1px solid #dee2e6;
+            margin-top: 1rem;
+        }
+        #privacy-footer a { color: #6f42c1; text-decoration: none; }
+        #privacy-footer a:hover { text-decoration: underline; }
         #allot-sold-price::-webkit-outer-spin-button,
         #allot-sold-price::-webkit-inner-spin-button,
         #allot-amount-received::-webkit-outer-spin-button,
@@ -119,6 +149,9 @@
     </style>
 </head>
 <body class="bg-light">
+
+    <!-- Offline detection banner -->
+    <div id="offline-banner">📡 No internet connection — please check your network and try again.</div>
 
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
         <div class="container-fluid">
@@ -193,7 +226,7 @@
 
         <section id="sec-login" class="view-section">
             <h3 class="mb-3 fw-bold">Sign In to Your Account</h3>
-            <form id="frm-login" onsubmit="document.getElementById('btn-execute-auth').click(); return false;">
+            <form id="frm-login" onsubmit="document.getElementById('btn-execute-auth').click(); return false;" novalidate>
             <div class="mb-3">
                 <label class="form-label small fw-bold">Your Role</label>
                 <select class="form-select" id="txt-login-role">
@@ -205,13 +238,19 @@
             </div>
             <div class="mb-3">
                 <label class="form-label small fw-bold">Email Address</label>
-                <input type="email" class="form-control" id="txt-login-email" placeholder="name@salon.com">
+                <input type="email" class="form-control" id="txt-login-email" placeholder="name@salon.com" autocomplete="email">
+                <div class="invalid-feedback" id="err-login-email"></div>
             </div>
             <div class="mb-3" id="grp-login-pass">
                 <label class="form-label small fw-bold">Password</label>
-                <input type="password" class="form-control" id="txt-login-pass" placeholder="Enter your password">
+                <input type="password" class="form-control" id="txt-login-pass" placeholder="Enter your password" autocomplete="current-password">
+                <div class="invalid-feedback" id="err-login-pass"></div>
             </div>
+            <div class="alert alert-danger py-2 small d-none" id="err-login-general" role="alert"></div>
             <button type="submit" class="btn btn-primary w-100" id="btn-execute-auth">Sign In</button>
+            <p class="text-muted small text-center mt-3 mb-0">
+                <strong>Test account:</strong> Use credentials provided by your administrator.
+            </p>
             </form>
         </section>
 
@@ -372,7 +411,7 @@
                         <div class="mb-3">
                             <label class="form-label small fw-bold">Services Provided During Today's Visit</label>
                             <input type="text" id="utilize-subservices-search" class="form-control form-control-sm mb-2" placeholder="🔍 Search service items…" autocomplete="off">
-                            <div id="container-utilize-subservices" class="p-3 border rounded bg-light" tabindex="3">
+                            <div id="container-utilize-subservices" class="p-3 border rounded bg-light" tabindex="3" style="max-height:310px; overflow-y:auto;">
                                 <span class="text-muted small">Please choose a package above to see available items.</span>
                             </div>
                             <div id="utilize-services-total" class="mt-2 fw-bold small text-primary" style="display:none;"></div>
@@ -905,6 +944,38 @@
                     .catch(err => console.warn('[GlamTrack] SW registration failed:', err));
             });
         }
+    </script>
+
+    <!-- Privacy Policy Footer -->
+    <div id="privacy-footer">
+        <a href="https://glamtrack.netlify.app/privacy.html" target="_blank" rel="noopener">Privacy Policy</a>
+        &nbsp;·&nbsp; © 2025 GlamTrack. All rights reserved.
+    </div>
+
+    <!-- Offline detection & font-scale guard -->
+    <script>
+        // ── Offline / Online banner ──────────────────────────────────────────
+        const _offlineBanner = document.getElementById('offline-banner');
+        function _updateOnlineStatus() {
+            if (!navigator.onLine) {
+                _offlineBanner.style.display = 'block';
+                // Push content down so banner doesn't overlap navbar
+                document.body.style.paddingTop = (_offlineBanner.offsetHeight + 56) + 'px';
+            } else {
+                _offlineBanner.style.display = 'none';
+                document.body.style.paddingTop = '';
+            }
+        }
+        window.addEventListener('online',  _updateOnlineStatus);
+        window.addEventListener('offline', _updateOnlineStatus);
+        _updateOnlineStatus(); // run once on load
+
+        // ── Font-scale guard: prevent OS "Extra Large" font from breaking layout ─
+        // Clamp document font-size between 13px and 17px regardless of system setting
+        (function() {
+            const base = Math.min(Math.max(parseFloat(getComputedStyle(document.documentElement).fontSize), 13), 17);
+            document.documentElement.style.fontSize = base + 'px';
+        })();
     </script>
 </body>
 </html>

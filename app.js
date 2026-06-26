@@ -932,19 +932,60 @@ async function handleTelemetryAlert(contextLabel, errorPayload) {
 // Sign-In Security & Authorization Process
 // =========================================================================
 async function processSecureProfileAuthentication() {
-    const selectedRole = document.getElementById("txt-login-role").value;
-    const emailInput = document.getElementById("txt-login-email").value.trim().toLowerCase();
-    const passwordInput = document.getElementById("txt-login-pass") ? document.getElementById("txt-login-pass").value : "";
+    const selectedRole   = document.getElementById("txt-login-role").value;
+    const emailInput     = document.getElementById("txt-login-email").value.trim().toLowerCase();
+    const passwordInput  = document.getElementById("txt-login-pass") ? document.getElementById("txt-login-pass").value : "";
+
+    // ── Helper: show inline errors ───────────────────────────────────────────
+    function _loginErr(field, msg) {
+        // field: 'email' | 'pass' | 'general'
+        if (field === 'email') {
+            const el = document.getElementById("txt-login-email");
+            const fb = document.getElementById("err-login-email");
+            if (el) el.classList.add("is-invalid");
+            if (fb) { fb.textContent = msg; }
+        } else if (field === 'pass') {
+            const el = document.getElementById("txt-login-pass");
+            const fb = document.getElementById("err-login-pass");
+            if (el) el.classList.add("is-invalid");
+            if (fb) { fb.textContent = msg; }
+        } else {
+            const fb = document.getElementById("err-login-general");
+            if (fb) { fb.textContent = msg; fb.classList.remove("d-none"); }
+        }
+    }
+    function _loginClearErrors() {
+        ["txt-login-email","txt-login-pass"].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.remove("is-invalid");
+        });
+        const fb = document.getElementById("err-login-general");
+        if (fb) { fb.textContent = ""; fb.classList.add("d-none"); }
+    }
+    _loginClearErrors();
 
     if (!emailInput) {
-        return alert("Please enter your sign-in email address.");
+        _loginErr('email', 'Please enter your sign-in email address.');
+        document.getElementById("txt-login-email").focus();
+        return;
     }
+    // Basic email format check
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput)) {
+        _loginErr('email', 'Please enter a valid email address.');
+        document.getElementById("txt-login-email").focus();
+        return;
+    }
+
+    // Disable button to prevent double-submit
+    const btnEl = document.getElementById("btn-execute-auth");
+    if (btnEl) { btnEl.disabled = true; btnEl.textContent = "Signing in…"; }
 
     try {
         // --- 1. System Administrator Sign-In Link ---
         if (selectedRole === "SUPER_USER") {
-            if (emailInput !== 'bawa.codes@gmail.com') { 
-                return alert("Sign In Blocked: This email address is not registered as a System Administrator.");
+            if (emailInput !== 'bawa.codes@gmail.com') {
+                _loginErr('email', 'This email is not registered as a System Administrator.');
+                return;
             }
 
             const otpInputVal = document.getElementById("txt-login-otp") ? document.getElementById("txt-login-otp").value.trim() : "";
@@ -959,75 +1000,92 @@ async function processSecureProfileAuthentication() {
                     body: `Your verification code for GlamTrack Console Access is: ${secureGeneratedToken}. Code expires in 15 minutes.`
                 });
 
-                return alert("A secure 6-digit confirmation code has been sent to the administrator's email inbox.");
+                _loginErr('general', 'A secure 6-digit confirmation code has been sent to the administrator\'s email inbox.');
+                return;
             }
 
             if (parseInt(otpInputVal, 10) !== window.tempSessionOtpStorage) {
-                return alert("Incorrect Code: The confirmation code you entered does not match.");
+                _loginErr('general', 'Incorrect Code: The confirmation code you entered does not match.');
+                return;
             }
 
             delete window.tempSessionOtpStorage;
 
-            activeSessionUser = { 
-                userNo: "0001", 
-                role: "SUPER_USER", 
-                name: "System Administrator", 
+            activeSessionUser = {
+                userNo: "0001",
+                role: "SUPER_USER",
+                name: "System Administrator",
                 email: "bawa.codes@gmail.com",
-                ownerUserNo: "000" 
+                ownerUserNo: "000"
             };
             salonOwnerNameContext = "Platform Core Administration";
-            
+
             renderAuthorizedWorkspaceSession();
             return;
         }
 
         // --- 2. Salon Owner / Manager / Staff Sign-In Link ---
         if (!passwordInput) {
-            return alert("Please enter your password phrase.");
+            _loginErr('pass', 'Please enter your password.');
+            document.getElementById("txt-login-pass").focus();
+            return;
         }
 
         // Database Security Constraint Check
         const q = query(collection(db, "users"), where("email", "==", emailInput), where("role", "==", selectedRole));
         const res = await getDocs(q);
-        
+
         if (res.empty) {
-            return alert("Sign In Failed: We couldn't find a profile matching that email and role choice. Please check your selection.");
+            _loginErr('general', 'Sign In Failed: No account found matching this email and role. Please check your details.');
+            return;
         }
 
         const userDoc = res.docs[0].data();
-        
+
         if (userDoc.password !== passwordInput) {
-            return alert("Sign In Failed: The password phrase you entered is incorrect.");
+            _loginErr('pass', 'Incorrect password. Please try again.');
+            document.getElementById("txt-login-pass").focus();
+            return;
         }
 
         const isoToday = new Date().toISOString().split("T")[0];
-        
+
         // Simplified Profile Status Validations
         if (userDoc.startDate && isoToday < userDoc.startDate) {
-            return alert("Access Notice: Your staff account is not scheduled to become active yet.");
+            _loginErr('general', 'Access Notice: Your staff account is not scheduled to become active yet.');
+            return;
         }
         if (userDoc.expiryDate && isoToday > userDoc.expiryDate) {
-            return alert("Access Notice: The salon management contract package for this account has expired.");
+            _loginErr('general', 'Access Notice: The salon management contract for this account has expired.');
+            return;
         }
         if (!userDoc.active) {
-            return alert("Access Notice: This team account profile has been marked as inactive. Please contact your manager.");
+            _loginErr('general', 'Access Notice: This account has been marked as inactive. Please contact your manager.');
+            return;
         }
 
         // Set successful login session
         activeSessionUser = userDoc;
-        // Owners must use their own userNo as their tenant key, not the creator's ownerUserNo
         if (activeSessionUser.role === "OWNER") {
             activeSessionUser = { ...activeSessionUser, ownerUserNo: activeSessionUser.userNo };
         }
         salonOwnerNameContext = activeSessionUser.role === "OWNER" ? activeSessionUser.name : `Salon Branch [${activeSessionUser.ownerUserNo}]`;
 
-        // Load the system
         renderAuthorizedWorkspaceSession();
 
     } catch (crash) {
-        // Back-end tracking continues safely, but user gets a clean notification
         await handleTelemetryAlert("Salon Sign In Security Error", crash);
-        alert("We encountered a small connection problem while signing you in. Please try again in a moment.");
+        const isOffline = !navigator.onLine;
+        document.getElementById("err-login-general") &&
+            (() => {
+                const fb = document.getElementById("err-login-general");
+                fb.textContent = isOffline
+                    ? "No internet connection. Please check your network and try again."
+                    : "A connection problem occurred while signing in. Please try again in a moment.";
+                fb.classList.remove("d-none");
+            })();
+    } finally {
+        if (btnEl) { btnEl.disabled = false; btnEl.textContent = "Sign In"; }
     }
 }
 
@@ -2350,17 +2408,69 @@ async function handleAllotModifyClick() {
     const newSoldPrice = parseFloat(document.getElementById("allot-sold-price").value);
     const newAmtRcvd   = parseFloat(document.getElementById("allot-amount-received").value) || 0;
     const newStartDate = document.getElementById("allot-start-date").value;
+    const origPrice    = parseFloat(document.getElementById("allot-original-price")?.value) || 0;
 
-    // Validation
+    // ── Hard validations (block update) ──────────────────────────────────────
+
     if (isNaN(newSoldPrice) || newSoldPrice <= 0)
         return alert("Validation Error: Selling Price must be a positive number.");
     if (newAmtRcvd < 0)
         return alert("Validation Error: Amount Received cannot be negative.");
     if (!newStartDate)
         return alert("Validation Error: Activation Date is required.");
-    if (newExpiry && newStartDate && newExpiry < newStartDate)
-        return alert("Validation Error: Expiration Date cannot be before the Activation Date.");
 
+    // (b) Expiry cannot be before Start Date — hard block
+    if (newExpiry && newStartDate && newExpiry < newStartDate)
+        return alert("Validation Error: Expiry Date cannot be BEFORE Activation Date.");
+
+    // (c) Start Date cannot be after earliest visit date — hard block
+    const logsForDates = await getDocs(query(
+        collection(db, "serviceUtilizationLogs"),
+        where("ownerUserNo", "==", activeSessionUser.ownerUserNo),
+        where("customerNo",  "==", p.customerNo),
+        where("allotId",     "==", p.allotId)
+    ));
+    if (!logsForDates.empty) {
+        const visitDates = [];
+        logsForDates.forEach(d => {
+            const vd = d.data().visitDate;
+            if (vd) visitDates.push(vd);
+        });
+        if (visitDates.length > 0) {
+            const minVisitDate = visitDates.sort()[0]; // ISO strings sort lexicographically
+            if (newStartDate > minVisitDate)
+                return alert(`Validation Error: Activation Date cannot be AFTER Visit Date (earliest visit: ${minVisitDate}).`);
+        }
+    }
+
+    // ── Soft validations (warn, allow update after confirmation) ─────────────
+    const warnings = [];
+
+    // (a-1) Selling Price < Amount Received
+    if (newSoldPrice < newAmtRcvd)
+        warnings.push("⚠️ Selling Price cannot be LESS than Amount Received.");
+
+    // (a-2) Selling Price > Original Price
+    if (origPrice > 0 && newSoldPrice > origPrice)
+        warnings.push("⚠️ Selling Price cannot be MORE than Original Price.");
+
+    // (d) Amount Received + sum of addlAmtReceived in logs > Selling Price
+    let sumAddlAmt = 0;
+    logsForDates.forEach(d => { sumAddlAmt += Number(d.data().addlAmtReceived || 0); });
+    const totalReceived = newAmtRcvd + sumAddlAmt;
+    if (totalReceived > newSoldPrice)
+        warnings.push(`⚠️ Amount Received (₹${newAmtRcvd.toLocaleString("en-IN")}) including visit collections (₹${sumAddlAmt.toLocaleString("en-IN")}) totals ₹${totalReceived.toLocaleString("en-IN")}, which cannot be more than Selling Price (₹${newSoldPrice.toLocaleString("en-IN")}).`);
+
+    // If any warnings, ask user to confirm before proceeding
+    if (warnings.length > 0) {
+        const proceed = confirm(
+            warnings.join("\n\n") +
+            "\n\nDo you still want to save these changes?"
+        );
+        if (!proceed) return;
+    }
+
+    // ── Perform the update ────────────────────────────────────────────────────
     try {
         const q = query(
             collection(db, "customerServicePacks"),
@@ -2372,11 +2482,11 @@ async function handleAllotModifyClick() {
         if (snap.empty) return alert("Error: Could not locate the package record to update.");
 
         const updatePayload = {
-            expiryDate:       newExpiry    || null,
-            soldPrice:        newSoldPrice,
-            amountReceived:   newAmtRcvd,
-            startDate:        newStartDate,
-            unpaidBalance:    Math.max(0, newSoldPrice - newAmtRcvd)
+            expiryDate:     newExpiry    || null,
+            soldPrice:      newSoldPrice,
+            amountReceived: newAmtRcvd,
+            startDate:      newStartDate,
+            unpaidBalance:  Math.max(0, newSoldPrice - totalReceived)
         };
         await updateDoc(snap.docs[0].ref, updatePayload);
         alert("✅ Package record updated successfully.");
@@ -2388,7 +2498,7 @@ async function handleAllotModifyClick() {
             soldPrice:      newSoldPrice,
             amountReceived: newAmtRcvd,
             startDate:      newStartDate,
-            unpaidBalance:  Math.max(0, newSoldPrice - newAmtRcvd)
+            unpaidBalance:  Math.max(0, newSoldPrice - totalReceived)
         };
     } catch (err) {
         await handleTelemetryAlert("Allot Modify Update", err);
@@ -2438,20 +2548,30 @@ async function handleAllotPackSelectChange() {
         updateAllotmentDiscountAndBalance();
     }
 
-    // (a) Fetch and display individual service items with price
+    // (a) Fetch and display individual service items with serviceName join
     if (pack.subServicesArray && pack.subServicesArray.length > 0) {
         try {
+            // Fetch subservices
             const ssResults = await Promise.all(pack.subServicesArray.map(code => {
                 const q = query(collection(db, "subServices"),
                     where("ownerUserNo", "==", activeSessionUser.ownerUserNo),
                     where("subServiceCode", "==", code));
                 return getDocs(q);
             }));
+
+            // Build serviceCode → serviceName lookup (same join as container-utilize-subservices)
+            const srvNameMap = new Map();
+            let srvSnap = await getDocs(query(collection(db, "services"), where("ownerUserNo", "==", activeSessionUser.ownerUserNo)));
+            if (srvSnap.empty) srvSnap = await getDocs(query(collection(db, "services"), where("ownerUserNo", "==", "000")));
+            srvSnap.forEach(d => { const s = d.data(); srvNameMap.set(s.serviceCode, s.serviceName); });
+
             let listHtml = `<div class="mt-1"><span class="text-muted fw-bold small">${pack.packType === "Type3" ? "Excluded" : "Included"} Services:</span><ul class="mb-0 mt-1 ps-3">`;
             ssResults.forEach(snap => {
                 if (!snap.empty) {
                     const ss = snap.docs[0].data();
-                    listHtml += `<li class="small">${ss.subServiceName} <span class="text-success fw-bold">₹${Number(ss.rate).toLocaleString("en-IN")}</span></li>`;
+                    const parentName = srvNameMap.get(ss.serviceCode) || "";
+                    const displayName = parentName ? `${ss.subServiceName} (${parentName})` : ss.subServiceName;
+                    listHtml += `<li class="small">${displayName} <span class="text-success fw-bold">₹${Number(ss.rate).toLocaleString("en-IN")}</span></li>`;
                 }
             });
             listHtml += `</ul></div>`;

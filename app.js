@@ -723,6 +723,10 @@ function initViewRouterLinks() {
             document.getElementById("usr-address").value = itemData.address || "";
             document.getElementById("usr-mapurl").value = itemData.googleMapLink || "";
             document.getElementById("usr-active").checked = itemData.active === true;
+            const regFeeEl = document.getElementById("usr-reg-fee");
+            if (regFeeEl) regFeeEl.value = itemData.registrationFee !== null && itemData.registrationFee !== undefined ? itemData.registrationFee : "";
+            const regDateEl = document.getElementById("usr-reg-date");
+            if (regDateEl) regDateEl.value = itemData.registrationDate || "";
 
             appendCatalogDeleteButton({
                 formId: "frm-adm-user-profile",
@@ -735,8 +739,6 @@ function initViewRouterLinks() {
                     removeCatalogDeleteButton("btn-dynamic-usr-delete");
                     refreshAllAdministrativeTables();
                     loadWorkspaceDropdownMappings();
-                    // Re-apply current mode so form resets to correct dynamic state
-                    // This also refreshes "All Active Registered Profiles List" with the correct role filter
                     const _delMode = document.getElementById("sec-adm-users")?.dataset?.userMode;
                     if (_delMode) {
                         applyUserFormMode(_delMode);
@@ -760,6 +762,52 @@ function initViewRouterLinks() {
 
 This cannot be undone.`
                         );
+                    }
+                    : (itemData.role === "CUSTOMER")
+                    ? async () => {
+                        // [1b] Effective ownerUserNo for comparison
+                        const effectiveOwnerId = (activeSessionUser.role === "OWNER")
+                            ? activeSessionUser.userNo
+                            : activeSessionUser.ownerUserNo;
+
+                        // [1c] Check if customer has any record in customerServicePacks
+                        const packSnap = await getDocs(query(
+                            collection(db, "customerServicePacks"),
+                            where("ownerUserNo", "==", effectiveOwnerId),
+                            where("customerNo",  "==", itemData.userNo)
+                        ));
+                        if (!packSnap.empty) {
+                            alert("This Customer has already been sold a Package, CANNOT delete.");
+                            return false;
+                        }
+                        return confirm(`Are you absolutely sure you want to permanently delete "${itemData.name || selectedUserNo}"? This action cannot be reversed.`);
+                    }
+                    : (itemData.role === "MANAGER" || itemData.role === "STAFF")
+                    ? async () => {
+                        // [1b from staff req] Effective ownerUserNo for comparison
+                        const effectiveOwnerId = (activeSessionUser.role === "OWNER")
+                            ? activeSessionUser.userNo
+                            : activeSessionUser.ownerUserNo;
+
+                        // Check serviceUtilizationLogs serviceProviders array for this staff's userNo
+                        const logsSnap = await getDocs(query(
+                            collection(db, "serviceUtilizationLogs"),
+                            where("ownerUserNo", "==", effectiveOwnerId)
+                        ));
+                        const staffUserNo = itemData.userNo;
+                        let foundInVisit = false;
+                        logsSnap.forEach(d => {
+                            if (foundInVisit) return;
+                            const providers = d.data().serviceProviders || [];
+                            if (providers.some(sp => sp.userNo === staffUserNo)) {
+                                foundInVisit = true;
+                            }
+                        });
+                        if (foundInVisit) {
+                            alert("Staff's record already Exists in Customer Visits, CANNOT delete this User.");
+                            return false;
+                        }
+                        return confirm(`Are you absolutely sure you want to permanently delete "${itemData.name || selectedUserNo}"? This action cannot be reversed.`);
                     }
                     : undefined
             });
@@ -868,6 +916,25 @@ This cannot be undone.`
                 buttonId: "btn-dynamic-sub-delete",
                 itemName: itemData.subServiceName || selectedCode,
                 targetDocRef: targetDoc.ref,
+                preDeleteConfirm: async () => {
+                    // [point a] Effective ownerUserNo for comparison
+                    const effectiveOwnerId = (activeSessionUser.role === "OWNER")
+                        ? activeSessionUser.userNo
+                        : activeSessionUser.ownerUserNo;
+
+                    // [point b] Check if this subServiceCode is in any commonServicePacks subServicesArray
+                    const packCheckSnap = await getDocs(query(
+                        collection(db, "commonServicePacks"),
+                        where("ownerUserNo", "==", effectiveOwnerId),
+                        where("subServicesArray", "array-contains", itemData.subServiceCode)
+                    ));
+                    if (!packCheckSnap.empty) {
+                        alert("This Sub Service is already part of some Multi-Service Package, CANNOT delete this sub-service.");
+                        return false; // block deletion
+                    }
+                    // No package dependency — ask normal confirmation
+                    return confirm(`Are you absolutely sure you want to permanently delete "${itemData.subServiceName || selectedCode}"? This action cannot be reversed.`);
+                },
                 onDeleted: () => {
                     document.getElementById("frm-adm-subservice").reset();
                     document.getElementById("sub-active").checked = true;
@@ -1774,6 +1841,7 @@ async function processUserADMFormSubmission(e) {
     const regFeeRaw = document.getElementById("usr-reg-fee")?.value;
     const regFee = (regFeeRaw !== "" && regFeeRaw !== undefined && !isNaN(parseFloat(regFeeRaw)) && parseFloat(regFeeRaw) >= 0)
         ? parseFloat(regFeeRaw) : null;
+    const regDate = document.getElementById("usr-reg-date")?.value || null;
 
     try {
         let targetUserNo = existingUserNo;
@@ -1843,7 +1911,7 @@ async function processUserADMFormSubmission(e) {
         await setDoc(doc(db, "users", docId), {
             ownerUserNo: recordOwnerUserNo, userNo: targetUserNo, role: role, name: name, sex: sex,
             ageGroup: age, email: email, password: pass, phone: phone, distance: dist, address: addr,
-            googleMapLink: maps, active: activeFlag, registrationFee: regFee,
+            googleMapLink: maps, active: activeFlag, registrationFee: regFee, registrationDate: regDate,
             startDate: new Date().toISOString().split("T")[0], createdAt: new Date().toISOString()
         });
 
@@ -1878,19 +1946,22 @@ async function processUserADMFormSubmission(e) {
 function _updatePasswordRequirementForRole(role) {
     const pwdField     = document.getElementById("usr-password");
     const confPwdField = document.getElementById("usr-confirm-password");
-    if (!pwdField || !confPwdField) return;
+    const emailEl      = document.getElementById("usr-email");
+    const emailLabel   = document.getElementById("lbl-usr-email");
 
     if (role === "STAFF") {
-        pwdField.placeholder     = "Create Login Password (Optional for Staff)";
-        confPwdField.placeholder = "Re-enter Password (Optional for Staff)";
-        pwdField.required     = false;
-        confPwdField.required = false;
+        if (pwdField)     { pwdField.placeholder     = "Create Login Password (Optional for Staff)"; pwdField.required     = false; }
+        if (confPwdField) { confPwdField.placeholder = "Re-enter Password (Optional for Staff)";     confPwdField.required = false; }
+        // [1a] Email optional for STAFF
+        if (emailEl)    { emailEl.required = false; emailEl.placeholder = "client@domain.com (Mandatory for Manager)"; }
+        if (emailLabel) emailLabel.textContent = "Email Address [Optional]";
     } else {
         // MANAGER (and default/fallback)
-        pwdField.placeholder     = "Create Login Password (Mandatory for Manager)";
-        confPwdField.placeholder = "Re-enter Password (Mandatory for Manager)";
-        pwdField.required     = true;
-        confPwdField.required = true;
+        if (pwdField)     { pwdField.placeholder     = "Create Login Password (Mandatory for Manager)"; pwdField.required     = true; }
+        if (confPwdField) { confPwdField.placeholder = "Re-enter Password (Mandatory for Manager)";     confPwdField.required = true; }
+        // [1a] Email mandatory for MANAGER
+        if (emailEl)    { emailEl.required = true;  emailEl.placeholder = "client@domain.com (Mandatory for Manager)"; }
+        if (emailLabel) emailLabel.textContent = "Email Address";
     }
 }
 
@@ -1966,18 +2037,18 @@ function applyUserFormMode(mode) {
         if (distEl) distEl.style.display = "";
     }
 
-    // --- Email: mandatory for MANAGER/STAFF, optional for CUSTOMER ---
+    // --- Email: mandatory for MANAGER, optional for STAFF and CUSTOMER ---
     const emailEl    = document.getElementById("usr-email");
     const emailLabel = document.getElementById("lbl-usr-email");
     if (mode === "MANAGER") {
-        if (emailEl)    { emailEl.required = true; }
+        if (emailEl)    { emailEl.required = true;  emailEl.placeholder = "client@domain.com (Mandatory for Manager)"; }
         if (emailLabel) emailLabel.textContent = "Email Address";
     } else {
-        if (emailEl)    { emailEl.required = false; }
+        if (emailEl)    { emailEl.required = false; emailEl.placeholder = "client@domain.com (Mandatory for Manager)"; }
         if (emailLabel) emailLabel.textContent = "Email Address [Optional]";
     }
 
-    // --- Registration Fee: show for CUSTOMER only ---
+    // --- Registration Fee and Date: show for CUSTOMER only ---
     const regFeeWrapper = document.getElementById("usr-reg-fee-wrapper");
     if (regFeeWrapper) regFeeWrapper.style.display = mode === "CUSTOMER" ? "" : "none";
 
@@ -2152,6 +2223,8 @@ function resetAllotExistingPackUI() {
         const ubCol = ubEl.closest(".col-md-4");
         if (ubCol) ubCol.style.display = "";
     }
+    const avEl = document.getElementById("allot-addl-amt-visits");
+    if (avEl) { avEl.value = ""; const avCol = avEl.closest(".col-md-4"); if (avCol) avCol.style.display = ""; }
 
     // Clear pack preview
     const previewEl = document.getElementById("allot-pack-preview");
@@ -2185,6 +2258,13 @@ function hideAllotExtraUIElements() {
         ubEl.value = "";
         const ubCol = ubEl.closest(".col-md-4");
         if (ubCol) ubCol.style.display = "none";
+    }
+    // iii-a) Hide allot-addl-amt-visits input and its label
+    const avEl = document.getElementById("allot-addl-amt-visits");
+    if (avEl) {
+        avEl.value = "";
+        const avCol = avEl.closest(".col-md-4");
+        if (avCol) avCol.style.display = "none";
     }
     // iii) Hide allot-existing-nav and its entire contents (wrapper + all children)
     const navEl = document.getElementById("allot-existing-nav");
@@ -2337,13 +2417,37 @@ function showAllotExistingPackAtIndex(idx) {
         expiryEl.removeAttribute("readonly"); // Expiry remains editable
     }
 
-    // Extra fields
+    // Extra fields — ensure all col wrappers are visible before populating
     const opEl = document.getElementById("allot-original-price");
-    if (opEl) opEl.value = p.totalAmount !== undefined ? `₹${Number(p.totalAmount).toLocaleString("en-IN")}` : "";
+    if (opEl) { const c = opEl.closest(".col-md-4"); if (c) c.style.display = ""; opEl.value = p.totalAmount !== undefined ? `₹${Number(p.totalAmount).toLocaleString("en-IN")}` : ""; }
     const rbEl = document.getElementById("allot-remaining-balance");
-    if (rbEl) rbEl.value = p.remainingBalance !== undefined ? p.remainingBalance : "";
+    if (rbEl) { const c = rbEl.closest(".col-md-4"); if (c) c.style.display = ""; rbEl.value = p.remainingBalance !== undefined ? p.remainingBalance : ""; }
+
+    // Amt Recvd in Visits — show col, populate from serviceUtilizationLogs
+    const avEl = document.getElementById("allot-addl-amt-visits");
+    if (avEl) {
+        const avCol = avEl.closest(".col-md-4");
+        if (avCol) avCol.style.display = "";
+        avEl.value = "Loading…";
+        getDocs(query(collection(db, "serviceUtilizationLogs"),
+            where("ownerUserNo", "==", activeSessionUser.ownerUserNo),
+            where("customerNo",  "==", p.customerNo),
+            where("allotId",     "==", p.allotId)
+        )).then(logsSnap => {
+            let sum = 0;
+            logsSnap.forEach(d => { sum += Number(d.data().addlAmtReceived || 0); });
+            avEl.value = `₹${sum.toLocaleString("en-IN")}`;
+            avEl.dataset.sumAddlAmt = sum;
+        }).catch(() => { avEl.value = "—"; avEl.dataset.sumAddlAmt = 0; });
+    }
+
+    // Unpaid Balance — show col and populate
     const ubEl = document.getElementById("allot-unpaid-balance-field");
-    if (ubEl) ubEl.value = p.unpaidBalance !== undefined ? `₹${Number(p.unpaidBalance).toLocaleString("en-IN")}` : "";
+    if (ubEl) {
+        const ubCol = ubEl.closest(".col-md-4");
+        if (ubCol) ubCol.style.display = "";
+        ubEl.value = p.unpaidBalance !== undefined ? `₹${Number(p.unpaidBalance).toLocaleString("en-IN")}` : "";
+    }
     const extraEl = document.getElementById("allot-existing-extra-fields");
     if (extraEl) extraEl.style.display = "flex";
 
@@ -2410,8 +2514,15 @@ async function handleAllotModifyClick() {
     const newStartDate = document.getElementById("allot-start-date").value;
     const origPrice    = parseFloat(document.getElementById("allot-original-price")?.value) || 0;
 
-    // ── Hard validations (block update) ──────────────────────────────────────
+    // Old values from the currently loaded pack record
+    const oldSoldPrice = parseFloat(p.soldPrice || 0);
+    const oldAmtRcvd   = parseFloat(p.amountReceived || 0);
 
+    // sumAddlAmt cached on the field when pack was loaded (avoids extra Firestore call)
+    const avEl      = document.getElementById("allot-addl-amt-visits");
+    const sumAddlAmt = avEl ? parseFloat(avEl.dataset.sumAddlAmt || 0) : 0;
+
+    // ── Hard validations (block update) ──────────────────────────────────────
     if (isNaN(newSoldPrice) || newSoldPrice <= 0)
         return alert("Validation Error: Selling Price must be a positive number.");
     if (newAmtRcvd < 0)
@@ -2432,12 +2543,9 @@ async function handleAllotModifyClick() {
     ));
     if (!logsForDates.empty) {
         const visitDates = [];
-        logsForDates.forEach(d => {
-            const vd = d.data().visitDate;
-            if (vd) visitDates.push(vd);
-        });
+        logsForDates.forEach(d => { const vd = d.data().visitDate; if (vd) visitDates.push(vd); });
         if (visitDates.length > 0) {
-            const minVisitDate = visitDates.sort()[0]; // ISO strings sort lexicographically
+            const minVisitDate = visitDates.sort()[0];
             if (newStartDate > minVisitDate)
                 return alert(`Validation Error: Activation Date cannot be AFTER Visit Date (earliest visit: ${minVisitDate}).`);
         }
@@ -2445,6 +2553,7 @@ async function handleAllotModifyClick() {
 
     // ── Soft validations (warn, allow update after confirmation) ─────────────
     const warnings = [];
+    const totalReceived = newAmtRcvd + sumAddlAmt;
 
     // (a-1) Selling Price < Amount Received
     if (newSoldPrice < newAmtRcvd)
@@ -2454,21 +2563,23 @@ async function handleAllotModifyClick() {
     if (origPrice > 0 && newSoldPrice > origPrice)
         warnings.push("⚠️ Selling Price cannot be MORE than Original Price.");
 
-    // (d) Amount Received + sum of addlAmtReceived in logs > Selling Price
-    let sumAddlAmt = 0;
-    logsForDates.forEach(d => { sumAddlAmt += Number(d.data().addlAmtReceived || 0); });
-    const totalReceived = newAmtRcvd + sumAddlAmt;
+    // (d) Total receipts (amountReceived + visit addl amts) > Selling Price
     if (totalReceived > newSoldPrice)
         warnings.push(`⚠️ Amount Received (₹${newAmtRcvd.toLocaleString("en-IN")}) including visit collections (₹${sumAddlAmt.toLocaleString("en-IN")}) totals ₹${totalReceived.toLocaleString("en-IN")}, which cannot be more than Selling Price (₹${newSoldPrice.toLocaleString("en-IN")}).`);
 
-    // If any warnings, ask user to confirm before proceeding
     if (warnings.length > 0) {
-        const proceed = confirm(
-            warnings.join("\n\n") +
-            "\n\nDo you still want to save these changes?"
-        );
+        const proceed = confirm(warnings.join("\n\n") + "\n\nDo you still want to save these changes?");
         if (!proceed) return;
     }
+
+    // ── New balance formulas ──────────────────────────────────────────────────
+    // remainingBalance += newSoldPrice - oldSoldPrice
+    const oldRemainingBalance = parseFloat(p.remainingBalance || 0);
+    const newRemainingBalance = oldRemainingBalance + (newSoldPrice - oldSoldPrice);
+
+    // unpaidBalance += oldAmtRcvd - newAmtRcvd
+    const oldUnpaidBalance = parseFloat(p.unpaidBalance || 0);
+    const newUnpaidBalance = Math.max(0, oldUnpaidBalance + (oldAmtRcvd - newAmtRcvd));
 
     // ── Perform the update ────────────────────────────────────────────────────
     try {
@@ -2482,24 +2593,33 @@ async function handleAllotModifyClick() {
         if (snap.empty) return alert("Error: Could not locate the package record to update.");
 
         const updatePayload = {
-            expiryDate:     newExpiry    || null,
-            soldPrice:      newSoldPrice,
-            amountReceived: newAmtRcvd,
-            startDate:      newStartDate,
-            unpaidBalance:  Math.max(0, newSoldPrice - totalReceived)
+            expiryDate:       newExpiry         || null,
+            soldPrice:        newSoldPrice,
+            amountReceived:   newAmtRcvd,
+            startDate:        newStartDate,
+            remainingBalance: newRemainingBalance,
+            unpaidBalance:    newUnpaidBalance,
         };
         await updateDoc(snap.docs[0].ref, updatePayload);
         alert("✅ Package record updated successfully.");
 
-        // Refresh local pack data
+        // Refresh local in-memory cache
         _allotExistingPacks[_allotExistingIdx] = {
             ...p,
-            expiryDate:     newExpiry || null,
-            soldPrice:      newSoldPrice,
-            amountReceived: newAmtRcvd,
-            startDate:      newStartDate,
-            unpaidBalance:  Math.max(0, newSoldPrice - totalReceived)
+            expiryDate:       newExpiry         || null,
+            soldPrice:        newSoldPrice,
+            amountReceived:   newAmtRcvd,
+            startDate:        newStartDate,
+            remainingBalance: newRemainingBalance,
+            unpaidBalance:    newUnpaidBalance,
         };
+
+        // Refresh UI balance fields to show updated values
+        const rbEl2 = document.getElementById("allot-remaining-balance");
+        if (rbEl2) rbEl2.value = newRemainingBalance;
+        const ubEl2 = document.getElementById("allot-unpaid-balance-field");
+        if (ubEl2) ubEl2.value = `₹${newUnpaidBalance.toLocaleString("en-IN")}`;
+
     } catch (err) {
         await handleTelemetryAlert("Allot Modify Update", err);
     }

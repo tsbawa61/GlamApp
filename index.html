@@ -515,7 +515,11 @@
                                 <input type="text" class="form-control" id="allot-remaining-balance" readonly>
                             </div>
                             <div class="col-md-4 mb-2">
-                                <label class="form-label small fw-bold">Unpaid Balance (₹)</label>
+                                <label class="form-label small fw-bold">Amt Recvd in Visits (₹)</label>
+                                <input type="text" class="form-control" id="allot-addl-amt-visits" readonly disabled>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <label class="form-label small fw-bold">Unpaid Balance on Date of Selling (₹)</label>
                                 <input type="text" class="form-control" id="allot-unpaid-balance-field" readonly>
                             </div>
                         </div>
@@ -842,6 +846,16 @@
                                 <div id="usr-pwd-mismatch-msg" class="text-danger small mt-1" style="display:none;">⚠️ Passwords do not match.</div>
                             </div>
                         </div>
+                        <div class="row" id="usr-reg-fee-wrapper">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-bold">Registration Fee [Optional]</label>
+                                <input type="number" class="form-control" id="usr-reg-fee" placeholder="e.g. 500" min="0" step="any" style="-moz-appearance:textfield; appearance:textfield;">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label small fw-bold">Registration Date</label>
+                                <input type="date" class="form-control" id="usr-reg-date">
+                            </div>
+                        </div>
                         <div class="mb-3">
                             <label class="form-label small fw-bold" id="lbl-usr-email">Email Address [Optional]</label>
                             <input type="email" class="form-control" id="usr-email" placeholder="client@domain.com">
@@ -853,10 +867,6 @@
                         <div class="mb-3">
                             <label class="form-label small fw-bold">Google Maps Pin Location URL</label>
                             <input type="url" class="form-control" id="usr-mapurl" placeholder="Paste navigation coordinate links if available">
-                        </div>
-                        <div class="mb-3" id="usr-reg-fee-wrapper">
-                            <label class="form-label small fw-bold">Registration Fee [Optional]</label>
-                            <input type="number" class="form-control" id="usr-reg-fee" placeholder="e.g. 500" min="0" step="any" style="-moz-appearance:textfield; appearance:textfield;">
                         </div>
                         <div class="form-check mb-3">
                             <input class="form-check-input" type="checkbox" id="usr-active" checked>

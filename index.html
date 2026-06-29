@@ -154,14 +154,16 @@
     <div id="offline-banner">📡 No internet connection — please check your network and try again.</div>
 
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
-        <div class="container-fluid">
-            <!-- GlamTrack brand as clickable nav item -->
+        <div class="container-fluid flex-wrap">
+            <!-- GlamTrack brand -->
             <a class="navbar-brand fw-bold" id="nav-glamtrack" style="cursor:pointer;">GlamTrack</a>
-            <div class="navbar-nav me-auto">
+
+            <!-- Nav items: on mobile wrap into 2 lines after brand -->
+            <div class="navbar-nav me-auto d-flex flex-wrap" id="main-nav-links">
                 <!-- Sign In (pre-login only) -->
                 <a class="nav-link" id="nav-login">Sign In</a>
 
-                <!-- Customers dropdown (post-login) -->
+                <!-- Line 1: Customers + Packages -->
                 <div class="nav-item dropdown d-none" id="nav-customers-wrapper">
                     <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false">Customers</a>
                     <ul class="dropdown-menu">
@@ -170,7 +172,6 @@
                     </ul>
                 </div>
 
-                <!-- Packages dropdown (post-login) -->
                 <div class="nav-item dropdown d-none" id="nav-packages-wrapper">
                     <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false">Packages</a>
                     <ul class="dropdown-menu">
@@ -179,10 +180,12 @@
                     </ul>
                 </div>
 
-                <!-- Services (post-login) -->
+                <!-- Line break on mobile between Packages and Services -->
+                <div class="w-100 d-block d-lg-none" id="nav-mobile-break"></div>
+
+                <!-- Line 2: Services + Admin -->
                 <a class="nav-link d-none" id="nav-services">Services</a>
 
-                <!-- Admin dropdown (post-login, OWNER/SUPER_USER only) -->
                 <div class="nav-item dropdown d-none" id="nav-admin-wrapper">
                     <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false">Admin</a>
                     <ul class="dropdown-menu">
@@ -191,10 +194,8 @@
                     </ul>
                 </div>
 
-                <!-- Gallery (post-login) -->
-                <a class="nav-link d-none" id="nav-gallery" style="display:none!important;">Gallery</a>
-
                 <!-- Legacy hidden IDs kept for JS compatibility -->
+                <a class="nav-link d-none" id="nav-gallery" style="display:none!important;"></a>
                 <a class="d-none" id="nav-home"></a>
                 <a class="d-none" id="nav-dashboard"></a>
                 <a class="d-none" id="nav-adm-packs"></a>
@@ -205,8 +206,14 @@
                     <a id="nav-adm-users-changepwd"></a>
                 </div>
             </div>
-            <span class="navbar-text text-warning me-3 small" id="lbl-active-context"></span>
-            <button class="btn btn-outline-danger btn-sm d-none" id="nav-logout">Log Out</button>
+
+            <!-- Session info bar: Salon Name | Logged In as Role | Branch ID | LogOut -->
+            <div class="d-flex flex-wrap align-items-center gap-2 mt-1 mt-lg-0 w-100 w-lg-auto" id="nav-session-bar">
+                <span class="navbar-text text-white fw-bold small" id="lbl-salon-name"></span>
+                <span class="navbar-text text-warning small" id="lbl-logged-in-role"></span>
+                <span class="navbar-text text-secondary small" id="lbl-active-context"></span>
+                <button class="btn btn-outline-danger btn-sm d-none" id="nav-logout">Log Out</button>
+            </div>
         </div>
     </nav>
 

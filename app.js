@@ -1221,7 +1221,16 @@ function renderAuthorizedWorkspaceSession() {
 
     // btn-trigger-autopopulate remains hidden permanently (no classList.remove("d-none"))
 
-    document.getElementById("lbl-active-context").innerText = `Branch ID Layer: ${activeSessionUser.userNo} | Logged In Role: ${activeSessionUser.role} | ${activeSessionUser.name}`;
+    // Session bar: Salon Name | Logged In as Role | Branch ID: ... | LogOut
+    const salonName = (salonOwnerNameContext || "").trim();
+    const salonNameEl = document.getElementById("lbl-salon-name");
+    if (salonNameEl) salonNameEl.innerText = salonName;
+
+    const roleEl = document.getElementById("lbl-logged-in-role");
+    if (roleEl) roleEl.innerText = `Logged In as: ${activeSessionUser.role}`;
+
+    // lbl-active-context now shows Branch ID last
+    //document.getElementById("lbl-active-context").innerText = `Branch ID: ${activeSessionUser.userNo}`;
     configureUserProfileFormForRole(activeSessionUser.role);
     startSessionWatchdog();
     showActiveFrame("sec-glamtrack");

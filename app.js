@@ -431,6 +431,9 @@ function initViewRouterLinks() {
     // Customers > Customer Visit
     document.getElementById("nav-customer-visit")?.addEventListener("click", () => {
         showActiveFrame("sec-visit");
+        // [a] Pre-fill today's date for new visit
+        const vdEl = document.getElementById("utilize-visit-date");
+        if (vdEl && !vdEl.value) vdEl.value = new Date().toISOString().split("T")[0];
         setTimeout(() => document.getElementById("utilize-customer-select")?.focus(), 80);
     });
 
@@ -446,6 +449,9 @@ function initViewRouterLinks() {
         // Reset the allot form to clean state (same as clicking Reset button)
         resetAllotExistingPackUI();
         hideAllotExtraUIElements();
+        // [1c] Pre-fill today's date as initial Activation Date for new sale
+        const startEl = document.getElementById("allot-start-date");
+        if (startEl && !startEl.value) startEl.value = new Date().toISOString().split("T")[0];
     });
 
     // Packages > Package Inventory
@@ -556,6 +562,12 @@ function initViewRouterLinks() {
         resetAllotExistingPackUI();
         // Also explicitly hide extra balance fields (shown only for existing packs)
         hideAllotExtraUIElements();
+        // [1b-ii] Restore Reset button caption after cancel
+        const resetBtn = document.getElementById("btn-reset-allot");
+        if (resetBtn) resetBtn.textContent = "Reset";
+        // [1c] Pre-fill today's date in Activation Date for new sale
+        const startEl = document.getElementById("allot-start-date");
+        if (startEl) startEl.value = new Date().toISOString().split("T")[0];
     });
 
     document.getElementById("btn-allot-modify")?.addEventListener("click", handleAllotModifyClick);
@@ -585,6 +597,12 @@ function initViewRouterLinks() {
         if (psrch) psrch.value = "";
         const histPanel = document.getElementById("utilize-visit-history");
         if (histPanel) histPanel.style.display = "none";
+        // [a] Restore today's date after reset
+        const vdEl = document.getElementById("utilize-visit-date");
+        if (vdEl) vdEl.value = new Date().toISOString().split("T")[0];
+        // [b] Restore Reset button caption after cancel
+        const resetBtn = document.getElementById("btn-reset-utilize");
+        if (resetBtn) resetBtn.textContent = "Reset";
     });
     
     // Automated reactive lookups processing links
@@ -600,8 +618,16 @@ function initViewRouterLinks() {
     });
 
     // Radio button: show/hide old-visit dropdown
-    document.getElementById("utilize-visit-new")?.addEventListener("change", () => resetOldVisitUI());
+    document.getElementById("utilize-visit-new")?.addEventListener("change", () => {
+        resetOldVisitUI();
+        // [b] Restore Reset caption when switching back to New Visit
+        const resetBtn = document.getElementById("btn-reset-utilize");
+        if (resetBtn) resetBtn.textContent = "Reset";
+    });
     document.getElementById("utilize-visit-old")?.addEventListener("change", async () => {
+        // [b] Change Reset caption to Cancel when Modify Old Visit is selected
+        const resetBtn = document.getElementById("btn-reset-utilize");
+        if (resetBtn) resetBtn.textContent = "Cancel";
         await populateOldVisitDates();
     });
 
@@ -1891,22 +1917,29 @@ async function processUserADMFormSubmission(e) {
 
         // Build document ID and ownerUserNo per role
         let docId, recordOwnerUserNo;
-        if (role === "CUSTOMER") {
+
+        if (!isNewItem) {
+            // Modifying an existing record — fetch the actual Firestore doc ID
+            // to avoid creating a duplicate document with a differently-formatted ID
+            const existingDoc = await fetchOwnerRecordByCode("users", "userNo", targetUserNo);
+            if (!existingDoc) return alert("Error: Could not locate the existing profile to update.");
+            docId = existingDoc.id;
+            recordOwnerUserNo = existingDoc.data().ownerUserNo;
+        } else if (role === "CUSTOMER") {
             recordOwnerUserNo = activeSessionUser.ownerUserNo;
-            docId = `${recordOwnerUserNo}-CUST-${targetUserNo}`;
+            docId = `${recordOwnerUserNo}_USR_${targetUserNo}`;
         } else if (role === "MANAGER") {
             recordOwnerUserNo = activeSessionUser.ownerUserNo;
-            docId = `${recordOwnerUserNo}-MGR-${targetUserNo}`;
+            docId = `${recordOwnerUserNo}_USR_${targetUserNo}`;
         } else if (role === "STAFF") {
             recordOwnerUserNo = activeSessionUser.ownerUserNo;
-            docId = `${recordOwnerUserNo}-STF-${targetUserNo}`;
+            docId = `${recordOwnerUserNo}_USR_${targetUserNo}`;
         } else if (role === "OWNER") {
-            recordOwnerUserNo = targetUserNo;   // owner's own userNo becomes their tenant key
-            docId = `${targetUserNo}-OWNER`;
+            recordOwnerUserNo = targetUserNo;
+            docId = `${targetUserNo}_USR_${targetUserNo}`;
         } else {
-            // fallback for any other role
             recordOwnerUserNo = activeSessionUser.ownerUserNo;
-            docId = `${recordOwnerUserNo}-${role}-${targetUserNo}`;
+            docId = `${recordOwnerUserNo}_USR_${targetUserNo}`;
         }
         await setDoc(doc(db, "users", docId), {
             ownerUserNo: recordOwnerUserNo, userNo: targetUserNo, role: role, name: name, sex: sex,
@@ -2238,35 +2271,16 @@ function resetAllotExistingPackUI() {
 
 // Explicitly hides the three extra UI groups when no active package is found for the customer
 function hideAllotExtraUIElements() {
-    // Hide allot-original-price input and its label
-    const opEl = document.getElementById("allot-original-price");
-    if (opEl) {
-        opEl.value = "";
-        const opCol = opEl.closest(".col-md-4");
-        if (opCol) opCol.style.display = "none";
-    }
-    // i) Hide allot-remaining-balance input and its label
-    const rbEl = document.getElementById("allot-remaining-balance");
-    if (rbEl) {
-        rbEl.value = "";
-        const rbCol = rbEl.closest(".col-md-4");
-        if (rbCol) rbCol.style.display = "none";
-    }
-    // ii) Hide allot-unpaid-balance-field input and its label
-    const ubEl = document.getElementById("allot-unpaid-balance-field");
-    if (ubEl) {
-        ubEl.value = "";
-        const ubCol = ubEl.closest(".col-md-4");
-        if (ubCol) ubCol.style.display = "none";
-    }
-    // iii-a) Hide allot-addl-amt-visits input and its label
-    const avEl = document.getElementById("allot-addl-amt-visits");
-    if (avEl) {
-        avEl.value = "";
-        const avCol = avEl.closest(".col-md-4");
-        if (avCol) avCol.style.display = "none";
-    }
-    // iii) Hide allot-existing-nav and its entire contents (wrapper + all children)
+    // Hide both extra-field rows and clear all values within them
+    ["allot-extra-row-1", "allot-extra-row-2"].forEach(rowId => {
+        const row = document.getElementById(rowId);
+        if (row) row.style.display = "none";
+    });
+    ["allot-original-price","allot-remaining-balance","allot-unpaid-balance-field","allot-addl-amt-visits"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { el.value = ""; delete el.dataset.sumAddlAmt; }
+    });
+    // Hide allot-existing-nav and its contents
     const navEl = document.getElementById("allot-existing-nav");
     if (navEl) navEl.style.display = "none";
     ["btn-allot-prev","btn-allot-next","allot-existing-nav-label"].forEach(id => {
@@ -2407,27 +2421,38 @@ function showAllotExistingPackAtIndex(idx) {
 
     const soldEl = document.getElementById("allot-sold-price");
     if (soldEl) soldEl.value = p.soldPrice !== undefined ? p.soldPrice : "";
+
+    // [1b-i] Populate amountReceived from customerServicePacks record (discard any prior UI value)
     const amtEl = document.getElementById("allot-amount-received");
-    if (amtEl) amtEl.value = p._totalAmtReceived !== undefined ? p._totalAmtReceived : "";
+    if (amtEl) amtEl.value = p.amountReceived !== undefined ? p.amountReceived : "";
+
     const startEl = document.getElementById("allot-start-date");
     if (startEl) startEl.value = p.startDate || "";
     const expiryEl = document.getElementById("allot-expiry-date");
     if (expiryEl) {
         expiryEl.value = p.expiryDate || "";
-        expiryEl.removeAttribute("readonly"); // Expiry remains editable
+        expiryEl.removeAttribute("readonly");
     }
 
-    // Extra fields — ensure all col wrappers are visible before populating
-    const opEl = document.getElementById("allot-original-price");
-    if (opEl) { const c = opEl.closest(".col-md-4"); if (c) c.style.display = ""; opEl.value = p.totalAmount !== undefined ? `₹${Number(p.totalAmount).toLocaleString("en-IN")}` : ""; }
-    const rbEl = document.getElementById("allot-remaining-balance");
-    if (rbEl) { const c = rbEl.closest(".col-md-4"); if (c) c.style.display = ""; rbEl.value = p.remainingBalance !== undefined ? p.remainingBalance : ""; }
+    // [1b-ii] Change Reset button caption to "Cancel" while in modify mode
+    const resetBtn = document.getElementById("btn-reset-allot");
+    if (resetBtn) resetBtn.textContent = "Cancel";
 
-    // Amt Recvd in Visits — show col, populate from serviceUtilizationLogs
+    // Show extra field rows [1a]
+    const row1 = document.getElementById("allot-extra-row-1");
+    if (row1) row1.style.display = "";
+    const row2 = document.getElementById("allot-extra-row-2");
+    if (row2) row2.style.display = "";
+
+    // Populate extra fields
+    const opEl = document.getElementById("allot-original-price");
+    if (opEl) opEl.value = p.totalAmount !== undefined ? `₹${Number(p.totalAmount).toLocaleString("en-IN")}` : "";
+    const rbEl = document.getElementById("allot-remaining-balance");
+    if (rbEl) rbEl.value = p.remainingBalance !== undefined ? p.remainingBalance : "";
+
+    // Amt Recvd in Visits — populate from serviceUtilizationLogs
     const avEl = document.getElementById("allot-addl-amt-visits");
     if (avEl) {
-        const avCol = avEl.closest(".col-md-4");
-        if (avCol) avCol.style.display = "";
         avEl.value = "Loading…";
         getDocs(query(collection(db, "serviceUtilizationLogs"),
             where("ownerUserNo", "==", activeSessionUser.ownerUserNo),
@@ -2441,15 +2466,9 @@ function showAllotExistingPackAtIndex(idx) {
         }).catch(() => { avEl.value = "—"; avEl.dataset.sumAddlAmt = 0; });
     }
 
-    // Unpaid Balance — show col and populate
+    // Unpaid Balance
     const ubEl = document.getElementById("allot-unpaid-balance-field");
-    if (ubEl) {
-        const ubCol = ubEl.closest(".col-md-4");
-        if (ubCol) ubCol.style.display = "";
-        ubEl.value = p.unpaidBalance !== undefined ? `₹${Number(p.unpaidBalance).toLocaleString("en-IN")}` : "";
-    }
-    const extraEl = document.getElementById("allot-existing-extra-fields");
-    if (extraEl) extraEl.style.display = "flex";
+    if (ubEl) ubEl.value = p.unpaidBalance !== undefined ? `₹${Number(p.unpaidBalance).toLocaleString("en-IN")}` : "";
 
     // (b) Alert message: updated text — statically placed above Select Customer in HTML
     const alertEl = document.getElementById("allot-existing-alert");
@@ -2597,8 +2616,8 @@ async function handleAllotModifyClick() {
             soldPrice:        newSoldPrice,
             amountReceived:   newAmtRcvd,
             startDate:        newStartDate,
-            remainingBalance: newRemainingBalance,
             unpaidBalance:    newUnpaidBalance,
+            // Note: remainingBalance is NOT updated here — it is only adjusted by visit deductions
         };
         await updateDoc(snap.docs[0].ref, updatePayload);
         alert("✅ Package record updated successfully.");
@@ -2610,13 +2629,10 @@ async function handleAllotModifyClick() {
             soldPrice:        newSoldPrice,
             amountReceived:   newAmtRcvd,
             startDate:        newStartDate,
-            remainingBalance: newRemainingBalance,
             unpaidBalance:    newUnpaidBalance,
         };
 
-        // Refresh UI balance fields to show updated values
-        const rbEl2 = document.getElementById("allot-remaining-balance");
-        if (rbEl2) rbEl2.value = newRemainingBalance;
+        // Refresh UI balance fields
         const ubEl2 = document.getElementById("allot-unpaid-balance-field");
         if (ubEl2) ubEl2.value = `₹${newUnpaidBalance.toLocaleString("en-IN")}`;
 
@@ -3307,9 +3323,12 @@ async function prefillOldVisitData() {
     const visitDateEl = document.getElementById("utilize-visit-date");
     if (visitDateEl) visitDateEl.value = log.visitDate || "";
 
-    // Pre-fill addlAmtReceived
+    // Pre-fill addlAmtReceived — only populate if non-zero [point f]
     const addlEl = document.getElementById("utilize-addl-amt-received");
-    if (addlEl) addlEl.value = log.addlAmtReceived || 0;
+    if (addlEl) {
+        const addlVal = Number(log.addlAmtReceived || 0);
+        addlEl.value = addlVal !== 0 ? addlVal : "";
+    }
 
     // Pre-check services from itemsRendered and restore staff dropdowns
     const prevItems    = log.itemsRendered    || [];
@@ -3468,10 +3487,13 @@ async function processVisitDeductionFormSubmission(e) {
 
             await updateDoc(packRef, { remainingBalance: newBalance, unpaidBalance: newUnpaid, lastVisitDate: visitDate });
 
-            // Update the log document — ONLY itemsRendered and serviceProviders are replaced
+            // Update the log document — replace all modifiable fields
             await updateDoc(_oldVisitLogDocRef, {
-                itemsRendered: newItemCodes,
-                serviceProviders: _collectServiceProviders(checkedInputs)
+                itemsRendered:       newItemCodes,
+                serviceProviders:    _collectServiceProviders(checkedInputs),
+                visitDate:           visitDate,
+                calculatedValueCost: newCalcCost,
+                addlAmtReceived:     newAddlAmt,
             });
 
             alert(`✅ Visit record updated. New Package Balance: ${newBalance}`);

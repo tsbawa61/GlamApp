@@ -364,12 +364,32 @@
                 <div class="card-header bg-primary text-white fw-bold">Customer's New Visit For Availing Package</div>
                 <div class="card-body">
                     <form id="frm-utilize-service-visit">
+                        <!-- Row 1: Customer select (left) | Package select (right) [points a] -->
                         <div class="row">
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-6 mb-2">
                                 <label class="form-label small fw-bold">Select Customer</label>
                                 <select class="form-select" id="utilize-customer-select" required tabindex="1"></select>
-                                <input type="text" id="utilize-customer-search" class="form-control form-control-sm mt-1" placeholder="🔍 Search customer by name…" autocomplete="off">
-                                <div class="d-flex gap-3 mt-2" id="utilize-visit-type-group">
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <label class="form-label small fw-bold">Select Active Package</label>
+                                <select class="form-select" id="utilize-pack-select" required tabindex="2">
+                                    <option value="">-- Choose a Customer First --</option>
+                                </select>
+                            </div>
+                        </div>
+                        <!-- Row 2: Customer search (left) | Package search (right) [points b, c, d] -->
+                        <div class="row mb-2">
+                            <div class="col-md-6">
+                                <input type="text" id="utilize-customer-search" class="form-control form-control-sm" placeholder="🔍 Search customer by name…" autocomplete="off">
+                            </div>
+                            <div class="col-md-6">
+                                <input type="text" id="utilize-pack-search" class="form-control form-control-sm" placeholder="🔍 Search package by name…" autocomplete="off">
+                            </div>
+                        </div>
+                        <!-- Row 3: Visit type radios (left) | Old visit date wrapper (right) [point e] -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="d-flex gap-3 mt-1" id="utilize-visit-type-group">
                                     <div class="form-check">
                                         <input class="form-check-input" type="radio" name="utilize-visit-type" id="utilize-visit-new" value="New Visit" checked>
                                         <label class="form-check-label small fw-bold" for="utilize-visit-new">New Visit</label>
@@ -380,15 +400,10 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label small fw-bold">Select Active Package</label>
-                                <select class="form-select" id="utilize-pack-select" required tabindex="2">
-                                    <option value="">-- Choose a Customer First --</option>
-                                </select>
-                                <input type="text" id="utilize-pack-search" class="form-control form-control-sm mt-1" placeholder="🔍 Search package by name…" autocomplete="off">
+                            <div class="col-md-6">
                                 <!-- Old Visit: previous visit date dropdown (hidden by default) -->
-                                <div id="utilize-old-visit-wrapper" style="display:none;" class="mt-2">
-                                    <label class="form-label small fw-bold">Choose Previous Visit Date:</label>
+                                <div id="utilize-old-visit-wrapper" style="display:none;">
+                                    <label class="form-label small fw-bold mb-1">Choose Previous Visit Date:</label>
                                     <select class="form-select form-select-sm" id="utilize-old-visit-date-select">
                                         <option value="">-- Select a Previous Visit Date --</option>
                                     </select>
@@ -506,21 +521,27 @@
                             </div>
                         </div>
                         <!-- Extra fields shown only when existing active package found -->
-                            <div class="col-md-4 mb-2">
-                                <label class="form-label small fw-bold">Original Price (₹)</label>
-                                <input type="text" class="form-control" id="allot-original-price" readonly disabled>
+                            <!-- Row i: Original Price (left) | Remaining Balance (right) -->
+                            <div class="row mb-2" id="allot-extra-row-1" style="display:none;">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold">Original Price (₹)</label>
+                                    <input type="text" class="form-control" id="allot-original-price" readonly disabled>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold">Remaining Services Balance</label>
+                                    <input type="text" class="form-control" id="allot-remaining-balance" readonly>
+                                </div>
                             </div>
-                            <div class="col-md-4 mb-2">
-                                <label class="form-label small fw-bold">Remaining Services Balance</label>
-                                <input type="text" class="form-control" id="allot-remaining-balance" readonly>
-                            </div>
-                            <div class="col-md-4 mb-2">
-                                <label class="form-label small fw-bold">Amt Recvd in Visits (₹)</label>
-                                <input type="text" class="form-control" id="allot-addl-amt-visits" readonly disabled>
-                            </div>
-                            <div class="col-md-4 mb-2">
-                                <label class="form-label small fw-bold">Unpaid Balance on Date of Selling (₹)</label>
-                                <input type="text" class="form-control" id="allot-unpaid-balance-field" readonly>
+                            <!-- Row ii: Unpaid Balance (left) | Amt Recvd in Visits (right) -->
+                            <div class="row mb-2" id="allot-extra-row-2" style="display:none;">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold">Unpaid Balance on Date of Selling (₹)</label>
+                                    <input type="text" class="form-control" id="allot-unpaid-balance-field" readonly>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold">Amt Recvd in Visits (₹)</label>
+                                    <input type="text" class="form-control" id="allot-addl-amt-visits" readonly disabled>
+                                </div>
                             </div>
                         </div>
                         <!-- Alert message for existing packages — rendered above Select Customer via JS -->

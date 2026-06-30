@@ -441,6 +441,7 @@ function initViewRouterLinks() {
     document.getElementById("nav-customer-reg")?.addEventListener("click", () => {
         applyUserFormMode("CUSTOMER");
         showActiveFrame("sec-adm-users");
+        openUserProfileModal({ quickAdd: false });
     });
 
     // Packages > Package Purchase
@@ -472,6 +473,7 @@ function initViewRouterLinks() {
     document.getElementById("nav-staff-reg")?.addEventListener("click", () => {
         applyUserFormMode("MANAGER");
         showActiveFrame("sec-adm-users");
+        openUserProfileModal({ quickAdd: false });
     });
 
     // Admin > Password Change
@@ -535,6 +537,11 @@ function initViewRouterLinks() {
         if (currentMode === "MANAGER") _updatePasswordRequirementForRole(e.target.value);
     });
     document.getElementById("btn-reset-userprofile")?.addEventListener("click", () => {
+        // Quick-add mode (opened via "+" in Sell Package form): just close the modal
+        if (_quickAddCustomerMode) {
+            closeUserProfileModal();
+            return;
+        }
         document.getElementById("frm-adm-user-profile").reset();
         document.getElementById("usr-active").checked = true;
         removeCatalogDeleteButton("btn-dynamic-usr-delete");
@@ -543,6 +550,30 @@ function initViewRouterLinks() {
         // Re-apply the current mode (CUSTOMER or MANAGER) so dynamic UI state is preserved
         const currentMode = document.getElementById("sec-adm-users")?.dataset?.userMode;
         if (currentMode) applyUserFormMode(currentMode);
+    });
+
+    // "+" Quick-add Customer button next to allot-customer-select
+    document.getElementById("btn-quick-add-customer")?.addEventListener("click", () => {
+        applyUserFormMode("CUSTOMER");
+        openUserProfileModal({ quickAdd: true });
+    });
+    // Initialize Bootstrap tooltip for the "+" button
+    const quickAddBtnEl = document.getElementById("btn-quick-add-customer");
+    if (quickAddBtnEl && window.bootstrap?.Tooltip) {
+        new bootstrap.Tooltip(quickAddBtnEl);
+    }
+
+    // Reset quick-add state whenever the modal closes by any means (Close btn, Esc, backdrop)
+    document.getElementById("modal-user-profile")?.addEventListener("hidden.bs.modal", () => {
+        _quickAddCustomerMode = false;
+        const wrapperEl  = document.getElementById("usr-select-existing-wrapper");
+        const headingEl  = document.getElementById("lbl-registered-profiles-heading");
+        const cardEl     = document.getElementById("card-registered-profiles");
+        const resetBtnEl = document.getElementById("btn-reset-userprofile");
+        if (wrapperEl) wrapperEl.style.display = "";
+        if (headingEl) headingEl.style.display = "";
+        if (cardEl)    cardEl.style.display    = "";
+        if (resetBtnEl) resetBtnEl.textContent = "Reset";
     });
     document.getElementById("frm-allot-membership").addEventListener("submit", processAllotmentFormSubmission);
     document.getElementById("btn-reset-allot")?.addEventListener("click", () => {
@@ -1230,7 +1261,7 @@ function renderAuthorizedWorkspaceSession() {
     if (roleEl) roleEl.innerText = `Logged In as: ${activeSessionUser.role}`;
 
     // lbl-active-context now shows Branch ID last
-    //document.getElementById("lbl-active-context").innerText = `Branch ID: ${activeSessionUser.userNo}`;
+    document.getElementById("lbl-active-context").innerText = `Branch ID: ${activeSessionUser.userNo}`;
     configureUserProfileFormForRole(activeSessionUser.role);
     startSessionWatchdog();
     showActiveFrame("sec-glamtrack");
@@ -1957,6 +1988,32 @@ async function processUserADMFormSubmission(e) {
             startDate: new Date().toISOString().split("T")[0], createdAt: new Date().toISOString()
         });
 
+        // Quick-add mode: close modal and auto-populate allot-customer-select, skip normal reset flow
+        if (_quickAddCustomerMode) {
+            alert(isNewItem
+                ? `Success: Profile record file registered successfully as a salon ${role}.`
+                : `✅ Success: Changes saved for "${name}".`);
+
+            removeCatalogDeleteButton("btn-dynamic-usr-delete");
+            refreshAllAdministrativeTables();
+            await loadWorkspaceDropdownMappings(); // ensures allot-customer-select has the new option
+
+            closeUserProfileModal();
+            _quickAddCustomerMode = false;
+
+            // Auto-populate allot-customer-select with the newly saved customer's userNo
+            const allotCustSelect = document.getElementById("allot-customer-select");
+            if (allotCustSelect) {
+                allotCustSelect.value = targetUserNo;
+                allotCustSelect.dispatchEvent(new Event("change"));
+            }
+
+            document.getElementById("frm-adm-user-profile").reset();
+            document.getElementById("usr-active").checked = true;
+            const _mMsgQA = document.getElementById("usr-pwd-mismatch-msg"); if (_mMsgQA) _mMsgQA.style.display = "none";
+            return;
+        }
+
         alert(isNewItem
             ? `Success: Profile record file registered successfully as a salon ${role}.`
             : `✅ Success: Changes saved for "${name}".`);
@@ -2005,6 +2062,57 @@ function _updatePasswordRequirementForRole(role) {
         if (emailEl)    { emailEl.required = true;  emailEl.placeholder = "client@domain.com (Mandatory for Manager)"; }
         if (emailLabel) emailLabel.textContent = "Email Address";
     }
+}
+
+// =========================================================================
+// User Profile Modal Helpers (shared by Customer Registration nav AND the
+// "+" quick-add button in Sell Package form). Only ONE copy of
+// frm-adm-user-profile exists in the DOM (inside #modal-user-profile),
+// so all existing save/load/delete logic works unchanged regardless of
+// which entry point opened it.
+// =========================================================================
+let _userProfileModalInstance = null;
+let _quickAddCustomerMode = false; // true when opened via the "+" button
+
+function _getUserProfileModalInstance() {
+    const modalEl = document.getElementById("modal-user-profile");
+    if (!modalEl) return null;
+    if (!_userProfileModalInstance) {
+        _userProfileModalInstance = new bootstrap.Modal(modalEl, { backdrop: "static" });
+    }
+    return _userProfileModalInstance;
+}
+
+function openUserProfileModal({ quickAdd }) {
+    _quickAddCustomerMode = !!quickAdd;
+
+    const wrapperEl   = document.getElementById("usr-select-existing-wrapper");
+    const headingEl   = document.getElementById("lbl-registered-profiles-heading");
+    const cardEl      = document.getElementById("card-registered-profiles");
+    const resetBtnEl  = document.getElementById("btn-reset-userprofile");
+
+    if (_quickAddCustomerMode) {
+        // Hide "choose existing" dropdown + its wrapper
+        if (wrapperEl) wrapperEl.style.display = "none";
+        // Hide "Registered Profiles" heading + table card
+        if (headingEl) headingEl.style.display = "none";
+        if (cardEl)    cardEl.style.display    = "none";
+        // Relabel Reset -> Close
+        if (resetBtnEl) resetBtnEl.textContent = "Close";
+    } else {
+        if (wrapperEl) wrapperEl.style.display = "";
+        if (headingEl) headingEl.style.display = "";
+        if (cardEl)    cardEl.style.display    = "";
+        if (resetBtnEl) resetBtnEl.textContent = "Reset";
+    }
+
+    const modal = _getUserProfileModalInstance();
+    if (modal) modal.show();
+}
+
+function closeUserProfileModal() {
+    const modal = _getUserProfileModalInstance();
+    if (modal) modal.hide();
 }
 
 function applyUserFormMode(mode) {

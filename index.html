@@ -349,6 +349,135 @@
 
         </section>
 
+        <!-- User Profile Modal: shared by Customer Registration nav AND the "+" quick-add
+             button in Sell Package form. Only ONE copy of frm-adm-user-profile exists in
+             the DOM, so all existing save/load/delete JS logic works unchanged regardless
+             of which entry point opened it. Placed OUTSIDE any .view-section so it is never
+             hidden by the section's display:none rule. -->
+        <div class="modal fade" id="modal-user-profile" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content">
+
+                    <div class="card mb-0 border-0">
+                        <div class="card-header bg-success text-white fw-bold d-flex justify-content-between align-items-center">
+                            <span>Add New Customer or Staff User Profile</span>
+                            <button type="button" class="btn-close btn-close-white d-none" id="btn-modal-userprofile-x" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="card-body">
+                            <form id="frm-adm-user-profile">
+                                <div class="mb-3 p-2 bg-warning-subtle rounded border border-warning" id="usr-select-existing-wrapper">
+                                    <label for="usr-select-existing" class="form-label small fw-bold text-dark">
+                                        ✨ To Update or Remove a Profile, Choose It Here First:
+                                    </label>
+                                    <select class="form-select border-warning" id="usr-select-existing">
+                                        <option value="">-- Creating a Brand New Profile --</option>
+                                    </select>
+                                    <input type="text" id="usr-select-search" class="form-control form-control-sm mt-1" placeholder="🔍 Search user by name or role…" autocomplete="off">
+                                    <div class="form-text text-muted small">Leave blank when registering a new Customer or staff member.</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold">Registration/Registered User Profile Type</label>
+                                    <select class="form-select text-danger fw-bold" id="usr-role" required>
+                                        <option value="">-- Click here to choose User profile type --</option>
+                                        <option value="OWNER" hidden>OWNER</option>
+                                        <option value="CUSTOMER">CUSTOMER</option>
+                                        <option value="MANAGER">MANAGER</option>
+                                        <option value="STAFF">STAFF</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold">Full Name</label>
+                                    <input type="text" class="form-control" id="usr-fullname" placeholder="First and Last name" required>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label small fw-bold">Gender</label>
+                                        <select class="form-select" id="usr-sex">
+                                            <option value="F" selected>Female</option>
+                                            <option value="M">Male</option>
+                                            <option value="O">Other</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label small fw-bold">Mobile Phone Number</label>
+                                        <input type="tel" class="form-control" id="usr-phone" placeholder="e.g., 9810001234" required>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label small fw-bold">Age Category</label>
+                                        <select class="form-select" id="usr-age">
+                                            <option value="">-- Select age category --</option>
+                                            <option value="Kids (3–12)">Kids (3–12)</option>
+                                            <option value="Teens (13–19)">Teens (13–19)</option>
+                                            <option value="Young Adults (20–29)">Young Adults (20–29)</option>
+                                            <option value="Professionals (30–45)">Professionals (30–45)</option>
+                                            <option value="Gen X (Ages 46–60)">Gen X (Ages 46–60)</option>
+                                            <option value="Seniors (61+)">Seniors (61+)</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <div id="usr-distance-wrapper">
+                                        <label class="form-label small fw-bold">Distance from Salon Branch (km)</label>
+                                        <select class="form-select" id="usr-distance">
+                                            <option value="">-- Select distance range --</option>
+                                            <option value="Hyper-Local Range (0–3 km)">Hyper-Local Range (0–3 km)</option>
+                                            <option value="Local Range (3–7 km)">Local Range (3–7 km)</option>
+                                            <option value="Mid Range (8-11 km)">Mid Range (8-11 km)</option>
+                                            <option value="Regional Range (12+ km)">Regional Range (12+ km)</option>
+                                        </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label small fw-bold">App Sign-In Password [Optional For Customer]</label>
+                                        <input type="password" class="form-control" id="usr-password" placeholder="Create Login Password (Mandatory for Manager)">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label small fw-bold">Confirm Password [Optional For Customer]</label>
+                                        <input type="password" class="form-control" id="usr-confirm-password" placeholder="Re-enter Password (Mandatory for Manager)">
+                                        <div id="usr-pwd-mismatch-msg" class="text-danger small mt-1" style="display:none;">⚠️ Passwords do not match.</div>
+                                    </div>
+                                </div>
+                                <div class="row" id="usr-reg-fee-wrapper">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label small fw-bold">Registration Fee [Optional]</label>
+                                        <input type="number" class="form-control" id="usr-reg-fee" placeholder="e.g. 500" min="0" step="any" style="-moz-appearance:textfield; appearance:textfield;">
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label small fw-bold">Registration Date</label>
+                                        <input type="date" class="form-control" id="usr-reg-date">
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold" id="lbl-usr-email">Email Address [Optional]</label>
+                                    <input type="email" class="form-control" id="usr-email" placeholder="client@domain.com">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold">Home & Street Address [Optional]</label>
+                                    <textarea class="form-control" id="usr-address" rows="4" placeholder="Physical Address details"></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold">Google Maps Pin Location URL</label>
+                                    <input type="url" class="form-control" id="usr-mapurl" placeholder="Paste navigation coordinate links if available">
+                                </div>
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" id="usr-active" checked>
+                                    <label class="form-check-label small" for="usr-active">Activate Profile record immediately</label>
+                                </div>
+                                <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-success w-100 fw-bold">Save Profile Record</button>
+                                <button type="button" class="btn btn-outline-secondary w-100" id="btn-reset-userprofile">Reset</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
         <!-- View More Modal (shared) -->
         <div class="modal fade" id="glamtrackModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-lg modal-dialog-scrollable">
@@ -496,7 +625,12 @@
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label small fw-bold">Select Customer</label>
-                                <select class="form-select" id="allot-customer-select" required></select>
+                                <div class="d-flex gap-2 align-items-start">
+                                    <select class="form-select" id="allot-customer-select" required></select>
+                                    <button type="button" class="btn btn-success fw-bold px-3" id="btn-quick-add-customer"
+                                            title="To ADD a New Customer Click here"
+                                            data-bs-toggle="tooltip" data-bs-placement="top">+</button>
+                                </div>
                                 <input type="text" id="allot-customer-search" class="form-control form-control-sm mt-1" placeholder="🔍 Search customer by name…" autocomplete="off">
                             </div>
                             <div class="col-md-6 mb-3">
@@ -803,119 +937,6 @@
 
         <section id="sec-adm-users" class="view-section">
 
-            <div class="card mb-4">
-                <div class="card-header bg-success text-white fw-bold">Add New Customer or Staff User Profile</div>
-                <div class="card-body">
-                    <form id="frm-adm-user-profile">
-                        <div class="mb-3 p-2 bg-warning-subtle rounded border border-warning">
-                            <label for="usr-select-existing" class="form-label small fw-bold text-dark">
-                                ✨ To Update or Remove a Profile, Choose It Here First:
-                            </label>
-                            <select class="form-select border-warning" id="usr-select-existing">
-                                <option value="">-- Creating a Brand New Profile --</option>
-                            </select>
-                            <input type="text" id="usr-select-search" class="form-control form-control-sm mt-1" placeholder="🔍 Search user by name or role…" autocomplete="off">
-                            <div class="form-text text-muted small">Leave blank when registering a new Customer or staff member.</div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold">Registration/Registered User Profile Type</label>
-                            <select class="form-select text-danger fw-bold" id="usr-role" required>
-                                <option value="">-- Click here to choose User profile type --</option>
-                                <option value="OWNER" hidden>OWNER</option>
-                                <option value="CUSTOMER">CUSTOMER</option>
-                                <option value="MANAGER">MANAGER</option>
-                                <option value="STAFF">STAFF</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold">Full Name</label>
-                            <input type="text" class="form-control" id="usr-fullname" placeholder="First and Last name" required>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label small fw-bold">Gender</label>
-                                <select class="form-select" id="usr-sex">
-                                    <option value="F" selected>Female</option>
-                                    <option value="M">Male</option>
-                                    <option value="O">Other</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label small fw-bold">Mobile Phone Number</label>
-                                <input type="tel" class="form-control" id="usr-phone" placeholder="e.g., 9810001234" required>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label small fw-bold">Age Category</label>
-                                <select class="form-select" id="usr-age">
-                                    <option value="">-- Select age category --</option>
-                                    <option value="Kids (3–12)">Kids (3–12)</option>
-                                    <option value="Teens (13–19)">Teens (13–19)</option>
-                                    <option value="Young Adults (20–29)">Young Adults (20–29)</option>
-                                    <option value="Professionals (30–45)">Professionals (30–45)</option>
-                                    <option value="Gen X (Ages 46–60)">Gen X (Ages 46–60)</option>
-                                    <option value="Seniors (61+)">Seniors (61+)</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <div id="usr-distance-wrapper">
-                                <label class="form-label small fw-bold">Distance from Salon Branch (km)</label>
-                                <select class="form-select" id="usr-distance">
-                                    <option value="">-- Select distance range --</option>
-                                    <option value="Hyper-Local Range (0–3 km)">Hyper-Local Range (0–3 km)</option>
-                                    <option value="Local Range (3–7 km)">Local Range (3–7 km)</option>
-                                    <option value="Mid Range (8-11 km)">Mid Range (8-11 km)</option>
-                                    <option value="Regional Range (12+ km)">Regional Range (12+ km)</option>
-                                </select>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label small fw-bold">App Sign-In Password [Optional For Customer]</label>
-                                <input type="password" class="form-control" id="usr-password" placeholder="Create Login Password (Mandatory for Manager)">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label small fw-bold">Confirm Password [Optional For Customer]</label>
-                                <input type="password" class="form-control" id="usr-confirm-password" placeholder="Re-enter Password (Mandatory for Manager)">
-                                <div id="usr-pwd-mismatch-msg" class="text-danger small mt-1" style="display:none;">⚠️ Passwords do not match.</div>
-                            </div>
-                        </div>
-                        <div class="row" id="usr-reg-fee-wrapper">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label small fw-bold">Registration Fee [Optional]</label>
-                                <input type="number" class="form-control" id="usr-reg-fee" placeholder="e.g. 500" min="0" step="any" style="-moz-appearance:textfield; appearance:textfield;">
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label small fw-bold">Registration Date</label>
-                                <input type="date" class="form-control" id="usr-reg-date">
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold" id="lbl-usr-email">Email Address [Optional]</label>
-                            <input type="email" class="form-control" id="usr-email" placeholder="client@domain.com">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold">Home & Street Address [Optional]</label>
-                            <textarea class="form-control" id="usr-address" rows="4" placeholder="Physical Address details"></textarea>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold">Google Maps Pin Location URL</label>
-                            <input type="url" class="form-control" id="usr-mapurl" placeholder="Paste navigation coordinate links if available">
-                        </div>
-                        <div class="form-check mb-3">
-                            <input class="form-check-input" type="checkbox" id="usr-active" checked>
-                            <label class="form-check-label small" for="usr-active">Activate Profile record immediately</label>
-                        </div>
-                        <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-success w-100 fw-bold">Save Profile Record</button>
-                        <button type="button" class="btn btn-outline-secondary w-100" id="btn-reset-userprofile">Reset</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-
             <div class="card mb-4 border-danger" hidden>
                 <div class="card-header bg-danger text-white fw-bold">Security & Permissions (Staff Work Roles)</div>
                 <div class="card-body">
@@ -944,8 +965,8 @@
                 </div>
             </div>
 
-            <h4 class="fw-bold mb-3">Registered Profiles</h4>
-            <div class="card mb-4">
+            <h4 class="fw-bold mb-3" id="lbl-registered-profiles-heading">Registered Profiles</h4>
+            <div class="card mb-4" id="card-registered-profiles">
                 <div class="table-responsive small border rounded">
                     <table class="table table-hover my-0"><thead class="table-light"><tr><th>Serial ID</th><th>Role Type</th><th>Full Name</th><th>Phone</th><th>Email Id</th><th>Working Status</th><th>Actions</th></tr></thead><tbody id="tbl-adm-users"></tbody></table>
                 </div>

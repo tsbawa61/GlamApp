@@ -88,7 +88,6 @@
             #sec-home p  { font-size: 0.85rem; }
             #sec-login { margin: 0.75rem auto; }
             .display-6 { font-size: 1.3rem !important; }
-            .navbar-nav { flex-wrap: wrap; gap: 0.25rem; }
             .card-body { padding: 0.75rem !important; }
             .table { font-size: 0.75rem; }
             .form-control, .form-select { font-size: 0.875rem; }
@@ -100,6 +99,15 @@
                 background-repeat: no-repeat;
             }
             .col-md-6, .col-md-4, .col-md-3 { width: 100%; }
+            /* Navbar: keep menu items compact on mobile */
+            #main-nav-links .nav-link { font-size: 0.82rem; padding: 0.2rem 0.4rem; }
+            #main-nav-links .dropdown-toggle { font-size: 0.82rem; }
+            #lbl-salon-name, #lbl-logged-in-role, #lbl-active-context { font-size: 0.72rem; }
+        }
+        /* On md+ screens, suppress the mobile line-break div */
+        @media (min-width: 768px) {
+            #main-nav-links { flex-wrap: nowrap !important; }
+            #main-nav-links .d-md-none { display: none !important; }
         }
         /* Offline banner */
         #offline-banner {
@@ -153,19 +161,26 @@
     <!-- Offline detection banner -->
     <div id="offline-banner">📡 No internet connection — please check your network and try again.</div>
 
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
-        <div class="container-fluid flex-wrap">
-            <!-- GlamTrack brand -->
-            <a class="navbar-brand fw-bold" id="nav-glamtrack" style="cursor:pointer;">GlamTrack</a>
+    <nav class="navbar navbar-dark bg-dark mb-4 py-1">
+        <div class="container-fluid d-flex flex-column px-2">
 
-            <!-- Nav items: on mobile wrap into 2 lines after brand -->
-            <div class="navbar-nav me-auto d-flex flex-wrap" id="main-nav-links">
+            <!-- Top row: Brand + session info + logout -->
+            <div class="d-flex align-items-center w-100 gap-2 flex-wrap">
+                <a class="navbar-brand fw-bold mb-0 me-2" id="nav-glamtrack" style="cursor:pointer; font-size:1.1rem;">GlamTrack</a>
+                <span class="navbar-text text-white fw-bold small" id="lbl-salon-name"></span>
+                <span class="navbar-text text-warning small" id="lbl-logged-in-role"></span>
+                <span class="navbar-text text-secondary small" id="lbl-active-context"></span>
+                <button class="btn btn-outline-danger btn-sm d-none ms-auto" id="nav-logout">Log Out</button>
                 <!-- Sign In (pre-login only) -->
-                <a class="nav-link" id="nav-login">Sign In</a>
+                <a class="nav-link text-white" id="nav-login">Sign In</a>
+            </div>
 
-                <!-- Line 1: Customers + Packages -->
+            <!-- Menu rows: line 1 = Customers + Packages, line 2 = Services + Admin -->
+            <div class="d-flex flex-wrap align-items-center gap-1 mt-1" id="main-nav-links">
+
+                <!-- Line 1 -->
                 <div class="nav-item dropdown d-none" id="nav-customers-wrapper">
-                    <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false">Customers</a>
+                    <a class="nav-link dropdown-toggle text-white py-1 px-2" data-bs-toggle="dropdown" role="button" aria-expanded="false">Customers</a>
                     <ul class="dropdown-menu">
                         <li><a class="dropdown-item" id="nav-customer-visit">Customer Visit</a></li>
                         <li><a class="dropdown-item" id="nav-customer-reg">Customer Registration</a></li>
@@ -173,21 +188,21 @@
                 </div>
 
                 <div class="nav-item dropdown d-none" id="nav-packages-wrapper">
-                    <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false">Packages</a>
+                    <a class="nav-link dropdown-toggle text-white py-1 px-2" data-bs-toggle="dropdown" role="button" aria-expanded="false">Packages</a>
                     <ul class="dropdown-menu">
                         <li><a class="dropdown-item" id="nav-package-purchase">Package Purchase</a></li>
                         <li><a class="dropdown-item" id="nav-package-inventory">Package Inventory</a></li>
                     </ul>
                 </div>
 
-                <!-- Line break on mobile between Packages and Services -->
-                <div class="w-100 d-block d-lg-none" id="nav-mobile-break"></div>
+                <!-- Force wrap: Services + Admin go to new line on mobile, stay inline on desktop -->
+                <div class="w-100 d-md-none"></div>
 
-                <!-- Line 2: Services + Admin -->
-                <a class="nav-link d-none" id="nav-services">Services</a>
+                <!-- Line 2 -->
+                <a class="nav-link text-white py-1 px-2 d-none" id="nav-services">Services</a>
 
                 <div class="nav-item dropdown d-none" id="nav-admin-wrapper">
-                    <a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false">Admin</a>
+                    <a class="nav-link dropdown-toggle text-white py-1 px-2" data-bs-toggle="dropdown" role="button" aria-expanded="false">Admin</a>
                     <ul class="dropdown-menu">
                         <li><a class="dropdown-item" id="nav-staff-reg">Staff Registration</a></li>
                         <li><a class="dropdown-item" id="nav-change-pwd">Password Change</a></li>
@@ -207,13 +222,6 @@
                 </div>
             </div>
 
-            <!-- Session info bar: Salon Name | Logged In as Role | Branch ID | LogOut -->
-            <div class="d-flex flex-wrap align-items-center gap-2 mt-1 mt-lg-0 w-100 w-lg-auto" id="nav-session-bar">
-                <span class="navbar-text text-white fw-bold small" id="lbl-salon-name"></span>
-                <span class="navbar-text text-warning small" id="lbl-logged-in-role"></span>
-                <span class="navbar-text text-secondary small" id="lbl-active-context"></span>
-                <button class="btn btn-outline-danger btn-sm d-none" id="nav-logout">Log Out</button>
-            </div>
         </div>
     </nav>
 
